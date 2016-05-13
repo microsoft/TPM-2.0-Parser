@@ -1,0 +1,27 @@
+﻿<Page
+    x:Class="TPM_Parser.Views.Output"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TPM_Parser.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+          EntranceNavigationTransitionInfo.IsTargetElement="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Style="{ThemeResource TitleTextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Text="Decode TPM 2.0 Response"/>
+        <ComboBox Grid.Row="1" x:Name="TpmCommands" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+        <TextBox Grid.Row="2" x:Name="ResponseStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM response stream here" />
+        <Button Grid.Row="3" x:Name="Decode" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" Content="Decode" Click="Decode_Click" />
+        <TextBox Grid.Row="4" x:Name="DecodedResponse" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap"  Text="" VerticalAlignment="Stretch" PlaceholderText="decoded response" IsReadOnly="True" />
+
+    </Grid>
+</Page>
