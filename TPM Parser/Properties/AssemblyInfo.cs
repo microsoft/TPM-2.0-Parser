@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("TPM Parser")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("TPM 2.0 Command and Response Parser")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("TPM Parser")]
-[assembly: AssemblyCopyright("Copyright ©  2016")]
+[assembly: AssemblyCopyright("Copyright ©  2016 Microsoft Research")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

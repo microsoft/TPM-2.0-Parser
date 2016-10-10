@@ -1,0 +1,79 @@
+﻿<Page
+    x:Class="TPM_Parser.Views.LandingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TPM_Parser"
+    xmlns:c="using:TPM_Parser.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    DataContext="{Binding RelativeSource={RelativeSource Mode=Self}}"
+    mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState>
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource MediumWindowSnapPoint}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="ContentContainer.Margin" Value="12,0,24,0"/>
+                        <Setter Target="title.Style" Value="{StaticResource PageTitleTextBlockStyle}"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState>
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource MinWindowSnapPoint}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="ContentContainer.Margin" Value="0,0,12,0"/>
+                        <Setter Target="title.Style" Value="{StaticResource NarrowPageTitleTextBlockStyle}"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <c:PageHeader x:Name="pageHeader">
+            <c:PageHeader.HeaderContent>
+                <TextBlock x:Name="title" Style="{StaticResource PageTitleTextBlockStyle}" Text="App Overview"/>
+            </c:PageHeader.HeaderContent>
+        </c:PageHeader>
+
+        <ScrollViewer Grid.Row="1" EntranceNavigationTransitionInfo.IsTargetElement="True" Margin="12,4,0,0">
+            <StackPanel x:Name="ContentContainer" Margin="12,0,24,0">
+                <TextBlock Style="{StaticResource SubtitleTextBlockStyle}">TPM 2.0 Command Decoder</TextBlock>
+                <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">This tool allows to decode of TPM 2.0 commands. This comes in handy if
+                a logged stream of TPM 2.0 commands needs to be decocded.</TextBlock>
+
+                <TextBlock Style="{StaticResource SubtitleTextBlockStyle}">TPM 2.0 Response Decoder</TextBlock>
+                <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">This tool allows to decode the response for a TPM 2.0 command. Given the
+                command that was used to generate the response and the byte stream of the response, this tool decodes the byte stream into a more readable 
+                format.</TextBlock>
+
+                <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,4">TPM 2.0 Overview</TextBlock>
+                <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">
+                The Trusted Platform Module (TPM) version 2.0, or short TPM 2.0, is a security device specified by the Trsuted Computing Group (short TCG).
+                More information about the TCG and TPMs can be found at <LineBreak/>
+                http://trustedcomputinggroup.org/
+                </TextBlock>
+
+                <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,4">Code contributions</TextBlock>
+                <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">
+                This application uses code from the TSS.MSR project to parse the command and response streams. Sources 
+                for TSS.MSR can be found at <LineBreak/>
+                https://github.com/Microsoft/Tss.msr
+                </TextBlock>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <CheckBox Grid.Row="2" x:Name="DontShowLandingPage" Margin="20,10" Content="Don't show this page in the future." Checked="DontShowLandingPage_Checked" />
+
+    </Grid>
+</Page>

@@ -3,22 +3,63 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:TPM_Parser.Views"
+    xmlns:ctl="using:TPM_Parser.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    KeyDown="Input_KeyDown"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-          EntranceNavigationTransitionInfo.IsTargetElement="True">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <Grid Background="{StaticResource ApplicationPageBackgroundThemeBrush}">
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup>
+            <VisualState>
+                <VisualState.StateTriggers>
+                    <AdaptiveTrigger MinWindowWidth="{StaticResource MediumWindowSnapPoint}" />
+                </VisualState.StateTriggers>
+                <VisualState.Setters>
+                    <Setter Target="Layoutroot.Margin" Value="12,0,0,0"/>
+                    <Setter Target="title.Style" Value="{StaticResource PageTitleTextBlockStyle}"/>
+                </VisualState.Setters>
+            </VisualState>
+            <VisualState>
+                <VisualState.StateTriggers>
+                    <AdaptiveTrigger MinWindowWidth="{StaticResource MinWindowSnapPoint}" />
+                </VisualState.StateTriggers>
+                <VisualState.Setters>
+                    <Setter Target="LayoutRoot.Margin" Value="0"/>
+                    <Setter Target="title.Style" Value="{StaticResource NarrowPageTitleTextBlockStyle}"/>
+                </VisualState.Setters>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
 
-        <TextBlock Grid.Row="0" Style="{ThemeResource TitleTextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Text="Decode TPM 2.0 Command"/>
-        <TextBox Grid.Row="1" x:Name="CommandStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM command stream here" />
-        <Button Grid.Row="2" x:Name="Decode" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" Content="Decode" Click="Decode_Click"/>
-        <TextBox Grid.Row="3" x:Name="Output" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" IsReadOnly="True" PlaceholderText="decoded TPM command" />
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <ctl:PageHeader>
+        <ctl:PageHeader.HeaderContent>
+            <TextBlock x:Name="title" Style="{StaticResource PageTitleTextBlockStyle}" Text="Command Decoder"/>
+        </ctl:PageHeader.HeaderContent>
+    </ctl:PageHeader>
+
+        <ScrollViewer x:Name="LayoutRoot"
+                    Grid.Row="1" 
+                    Margin="24,0,0,0">
+            <StackPanel>
+                <Grid x:Name="ContentRoot" Margin="0,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBox Grid.Row="0" x:Name="CommandStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM command stream here" />
+                    <Button Grid.Row="1" x:Name="Decode" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" Content="Decode" Click="Decode_Click"/>
+                    <TextBox Grid.Row="2" x:Name="Output" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" IsReadOnly="True" PlaceholderText="decoded TPM command" FontFamily="Consolas" />
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

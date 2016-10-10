@@ -17,7 +17,11 @@
     <EnableDotNetNativeCompatibleProfile>true</EnableDotNetNativeCompatibleProfile>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <PackageCertificateKeyFile>TPM Parser_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateKeyFile>TPM Parser_StoreKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint>E146FC721B634AD87987D43AA0D73C009B0D31BA</PackageCertificateThumbprint>
+    <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
+    <AppxBundle>Always</AppxBundle>
+    <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>
@@ -68,7 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x86\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NETFX_CORE;WINDOWS_UWP;CODE_ANALYSIS;TSS_MIN_API</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
@@ -99,12 +103,36 @@
     <Compile Include="AppShell.xaml.cs">
       <DependentUpon>AppShell.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Controls\NavigationHelper.cs" />
     <Compile Include="Controls\NavMenuListView.cs" />
     <Compile Include="Controls\PageHeader.xaml.cs">
       <DependentUpon>PageHeader.xaml</DependentUpon>
     </Compile>
-    <Compile Include="NavMenuItem.cs" />
+    <Compile Include="Controls\SuspensionManager.cs" />
+    <Compile Include="Views\LandingPage.xaml.cs">
+      <DependentUpon>LandingPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\NavMenuItem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tpm2Lib\CryptoAsym.cs" />
+    <Compile Include="Tpm2Lib\CryptoLib.cs" />
+    <Compile Include="Tpm2Lib\CryptoSymm.cs" />
+    <Compile Include="Tpm2Lib\CustomExceptions.cs" />
+    <Compile Include="Tpm2Lib\Globs.cs" />
+    <Compile Include="Tpm2Lib\KeyWrapping.cs" />
+    <Compile Include="Tpm2Lib\Marshaller.cs" />
+    <Compile Include="Tpm2Lib\MarshallingAttributes.cs" />
+    <Compile Include="Tpm2Lib\Policy.cs" />
+    <Compile Include="Tpm2Lib\PolicyAces.cs" />
+    <Compile Include="Tpm2Lib\Sessions.cs" />
+    <Compile Include="Tpm2Lib\SupportClasses.cs" />
+    <Compile Include="Tpm2Lib\Tpm2.cs" />
+    <Compile Include="Tpm2Lib\Tpm2Abstractions.cs" />
+    <Compile Include="Tpm2Lib\Tpm2Helpers.cs" />
+    <Compile Include="Tpm2Lib\TpmBaseClasses.cs" />
+    <Compile Include="Tpm2Lib\TpmCustomDefs.cs" />
+    <Compile Include="Tpm2Lib\TpmKey.cs" />
+    <Compile Include="Tpm2Lib\X_TpmDefs.cs" />
     <Compile Include="Views\Input.xaml.cs">
       <DependentUpon>Input.xaml</DependentUpon>
     </Compile>
@@ -120,9 +148,10 @@
       <SubType>Designer</SubType>
     </AppxManifest>
     <None Include="README.md" />
-    <None Include="TPM Parser_TemporaryKey.pfx" />
+    <None Include="TPM Parser_StoreKey.pfx" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Package.StoreAssociation.xml" />
     <Content Include="Properties\Default.rd.xml" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -145,10 +174,9 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Styles\Styles.xaml">
+    <Page Include="Views\LandingPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Page>
     <Page Include="Views\Input.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -163,18 +191,15 @@
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
-  <ItemGroup>
-    <SDKReference Include="WindowsMobile, Version=10.0.10240.0">
-      <Name>Microsoft Mobile Extension SDK for Universal App Platform</Name>
-    </SDKReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="TSS.UWP">
-      <HintPath>..\..\..\..\.nuget\packages\Microsoft.TSS.UWP\1.0.0\TSS.UWP\bin\Debug\TSS.UWP.dll</HintPath>
-    </Reference>
-  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

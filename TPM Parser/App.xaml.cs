@@ -1,10 +1,15 @@
 ﻿using System;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
+using Windows.Foundation;
 using Windows.Foundation.Metadata;
 using Windows.Phone.UI.Input;
+using Windows.Storage;
+using Windows.UI;
 using Windows.UI.Core;
+using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 
 namespace TPM_Parser
@@ -14,12 +19,17 @@ namespace TPM_Parser
     /// </summary>
     sealed partial class App : Application
     {
+        private Frame rootFrame;
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
         public App()
         {
+            //Microsoft.ApplicationInsights.WindowsAppInitializer.InitializeAsync(
+            //    Microsoft.ApplicationInsights.WindowsCollectors.Metadata |
+            //    Microsoft.ApplicationInsights.WindowsCollectors.Session);
             this.InitializeComponent();
             this.Suspending += OnSuspending;
         }
@@ -37,6 +47,18 @@ namespace TPM_Parser
                 this.DebugSettings.EnableFrameRateCounter = true;
             }
 #endif
+
+            // Change minimum window size 
+            ApplicationView.GetForCurrentView().SetPreferredMinSize(new Size(320, 600));
+
+            // Darken the window title bar using a color value to match app theme
+            ApplicationViewTitleBar titleBar = ApplicationView.GetForCurrentView().TitleBar;
+            if (titleBar != null)
+            {
+                Color titleBarColor = (Color)App.Current.Resources["SystemChromeMediumColor"];
+                titleBar.BackgroundColor = titleBarColor;
+                titleBar.ButtonBackgroundColor = titleBarColor;
+            }
 
             AppShell shell = Window.Current.Content as AppShell;
 
@@ -63,9 +85,23 @@ namespace TPM_Parser
 
             if (shell.AppFrame.Content == null)
             {
-                // When the navigation stack isn't restored, navigate to the first page
-                // suppressing the initial entrance animation.
-                shell.AppFrame.Navigate(typeof(Views.Input), e.Arguments, new Windows.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo());
+                ApplicationDataContainer roamingSettings = ApplicationData.Current.RoamingSettings;
+                const string DontShowLandingPageSetting = "DontShowLandingPage";
+
+                if (roamingSettings.Values[DontShowLandingPageSetting] != null &&
+                    roamingSettings.Values[DontShowLandingPageSetting].Equals(true.ToString()))
+                {
+                    // When the navigation stack isn't restored, navigate to the first page
+                    // suppressing the initial entrance animation. Because landing page is disabled,
+                    // got to first content page.
+                    shell.AppFrame.Navigate(typeof(Views.Input), e.Arguments, new Windows.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo());
+                }
+                else
+                {
+                    // When the navigation stack isn't restored, navigate to the first page
+                    // suppressing the initial entrance animation.
+                    shell.AppFrame.Navigate(typeof(Views.LandingPage), e.Arguments, new Windows.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo());
+                }
             }
 
             // Ensure the current window is active

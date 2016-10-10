@@ -21,6 +21,7 @@ namespace TPM_Parser
     /// </summary>
     public sealed partial class AppShell : Page
     {
+        private bool isPaddingAdded = false;
         // Declare the top level nav items
         private List<NavMenuItem> navlist = new List<NavMenuItem>(
             new[]
@@ -28,22 +29,21 @@ namespace TPM_Parser
                 new NavMenuItem()
                 {
                     Symbol = Symbol.Download,
-                    Label = "Input Decoder",
+                    Label = "Command Decoder",
                     DestinationPage = typeof(Views.Input)
                 },
                 new NavMenuItem()
                 {
                     Symbol = Symbol.Upload,
-                    Label = "Output",
+                    Label = "Response Decoder",
                     DestinationPage = typeof(Views.Output)
                 },
                 new NavMenuItem()
                 {
-                    Symbol = Symbol.Link,
-                    Label = "Download Source Code",
-                    DestinationPage = typeof(Uri),
-                    Arguments = "https://github.com/Microsoft/TPMDecoder",
-                }
+                    Symbol = Symbol.Setting,
+                    Label = "Settings",
+                    DestinationPage = typeof(Views.SettingsPage)
+                },
             });
 
         public static AppShell Current = null;
@@ -61,21 +61,51 @@ namespace TPM_Parser
             {
                 Current = this;
 
-                this.TogglePaneButton.Focus(FocusState.Programmatic);
+                this.CheckTogglePaneButtonSizeChanged();
+
+                var titleBar = Windows.ApplicationModel.Core.CoreApplication.GetCurrentView().TitleBar;
+                titleBar.IsVisibleChanged += TitleBar_IsVisibleChanged;
             };
 
-            SystemNavigationManager.GetForCurrentView().BackRequested += SystemNavigationManager_BackRequested;
+            this.RootSplitView.RegisterPropertyChangedCallback(
+                SplitView.DisplayModeProperty,
+                (s, a) =>
+                {
+                    // Ensure that we update the reported size of the TogglePaneButton when the SplitView's
+                    // DisplayMode changes.
+                    this.CheckTogglePaneButtonSizeChanged();
+                });
 
-            // If on a phone device that has hardware buttons then we hide the app's back button.
-            if (ApiInformation.IsTypePresent("Windows.Phone.UI.Input.HardwareButtons"))
-            {
-                this.BackButton.Visibility = Visibility.Collapsed;
-            }
+            SystemNavigationManager.GetForCurrentView().BackRequested += SystemNavigationManager_BackRequested;
+            SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility = AppViewBackButtonVisibility.Visible;
 
             NavMenuList.ItemsSource = navlist;
         }
 
         public Frame AppFrame { get { return this.frame; } }
+
+        /// <summary>
+        /// Invoked when window title bar visibility changes, such as after loading or in tablet mode
+        /// Ensures correct padding at window top, between title bar and app content
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        private void TitleBar_IsVisibleChanged(Windows.ApplicationModel.Core.CoreApplicationViewTitleBar sender, object args)
+        {
+            if (!this.isPaddingAdded && sender.IsVisible)
+            {
+                //add extra padding between window title bar and app content
+                double extraPadding = (double)Windows.UI.Xaml.Application.Current.Resources["DesktopWindowTopPadding"];
+                this.isPaddingAdded = true;
+
+                Thickness margin = NavMenuList.Margin;
+                NavMenuList.Margin = new Thickness(margin.Left, margin.Top + extraPadding, margin.Right, margin.Bottom);
+                margin = frame.Margin;
+                frame.Margin = new Thickness(margin.Left, margin.Top + extraPadding, margin.Right, margin.Bottom);
+                margin = TogglePaneButton.Margin;
+                TogglePaneButton.Margin = new Thickness(margin.Left, margin.Top + extraPadding, margin.Right, margin.Bottom);
+            }
+        }
 
         /// <summary>
         /// Default keyboard focus movement for any unhandled keyboarding
@@ -135,12 +165,6 @@ namespace TPM_Parser
             e.Handled = handled;
         }
 
-        private void BackButton_Click(object sender, RoutedEventArgs e)
-        {
-            bool ignored = false;
-            this.BackRequested(ref ignored);
-        }
-
         private void BackRequested(ref bool handled)
         {
             // Get a hold of the current frame so that we can inspect the app back stack.
@@ -159,18 +183,6 @@ namespace TPM_Parser
 
         #endregion
 
-        #region Settings
-
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (this.AppFrame.CurrentSourcePageType != typeof(SettingsPage))
-            {
-                this.AppFrame.Navigate(typeof(SettingsPage), null);
-            }
-        }
-
-        #endregion
-
         #region Navigation
 
         /// <summary>
@@ -178,27 +190,16 @@ namespace TPM_Parser
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="listViewItem"></param>
-        private async void NavMenuList_ItemInvoked(object sender, ListViewItem listViewItem)
+        private void NavMenuList_ItemInvoked(object sender, ListViewItem listViewItem)
         {
             var item = (NavMenuItem)((NavMenuListView)sender).ItemFromContainer(listViewItem);
 
             if (item != null)
             {
-                if (item.DestinationPage != null)
+                if (item.DestinationPage != null &&
+                    item.DestinationPage != this.AppFrame.CurrentSourcePageType)
                 {
-                    if (item.DestinationPage == typeof(Uri))
-                    {
-                        // Grab the URL from the argument
-                        Uri url = null;
-                        if (Uri.TryCreate(item.Arguments as string, UriKind.Absolute, out url))
-                        {
-                            await Launcher.LaunchUriAsync(url);
-                        }
-                    }
-                    else if (item.DestinationPage != this.AppFrame.CurrentSourcePageType)
-                    {
-                        this.AppFrame.Navigate(item.DestinationPage, item.Arguments);
-                    }
+                    this.AppFrame.Navigate(item.DestinationPage, item.Arguments);
                 }
             }
         }
@@ -267,6 +268,37 @@ namespace TPM_Parser
         /// The custom "PageHeader" user control is using this.
         /// </summary>
         public event TypedEventHandler<AppShell, Rect> TogglePaneButtonRectChanged;
+
+        /// <summary>
+        /// Public method to allow pages to open SplitView's pane.
+        /// Used for custom app shortcuts like navigating left from page's left-most item
+        /// </summary>
+        public void OpenNavePane()
+        {
+            TogglePaneButton.IsChecked = true;
+            //NavPaneDivider.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Hides divider when nav pane is closed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        private void RootSplitView_PaneClosed(SplitView sender, object args)
+        {
+            //NavPaneDivider.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Callback when the SplitView's Pane is toggled closed.  When the Pane is not visible
+        /// then the floating hamburger may be occluding other content in the app unless it is aware.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void TogglePaneButton_Unchecked(object sender, RoutedEventArgs e)
+        {
+            this.CheckTogglePaneButtonSizeChanged();
+        }
 
         /// <summary>
         /// Callback when the SplitView's Pane is toggled open or close.  When the Pane is not visible
