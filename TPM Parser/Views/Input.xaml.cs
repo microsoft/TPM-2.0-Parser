@@ -15,7 +15,7 @@ namespace TPM_Parser.Views
             this.InitializeComponent();
 
             // testing only
-            CommandStream.Text = "8001000000160000017A00000006000001000000002A";
+            //CommandStream.Text = "8001000000160000017A00000006000001000000002A";
             //CommandStream.Text = "80020000003D00000158810000020000" +
             //    "0009AAAAAAAAAAAAAAAAAA00140151330A04AFD1010000000000000000000000" +
             //    "000010000000010004037FF700";

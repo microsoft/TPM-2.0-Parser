@@ -11,15 +11,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-#if WINDOWS_UWP
 using Windows.Security.Cryptography;
 using Windows.Security.Cryptography.Core;
 using Windows.Storage.Streams;
-#else // WINDOWS_UWP
-#if !TSS_USE_BCRYPT
-using System.Security.Cryptography;
-#endif
-#endif // WINDOWS_UWP
 
 namespace Tpm2Lib
 {
@@ -27,40 +21,6 @@ namespace Tpm2Lib
     {
         public static byte[] HashData(TpmAlgId algId, byte[] dataToHash)
         {
-#if TSS_USE_BCRYPT
-            string algName = Native.BCryptHashAlgName(algId);
-            if (string.IsNullOrEmpty(algName))
-            {
-                Globs.Throw<ArgumentException>("HashData(): Unsupported hash algorithm " + algId);
-                return null;
-            }
-
-            var alg = new BCryptAlgorithm(algName);
-            var digest = alg.HashData(dataToHash ?? new byte[0]);
-            alg.Close();
-            return digest;
-#elif !WINDOWS_UWP
-            HashAlgorithm hashAlg = null;
-            switch (algId)
-            {
-                case TpmAlgId.Sha1:
-                    hashAlg = new SHA1Managed();
-                    break;
-                case TpmAlgId.Sha256:
-                    hashAlg = new SHA256Managed();
-                    break;
-                case TpmAlgId.Sha384:
-                    hashAlg = new SHA384Managed();
-                    break;
-                case TpmAlgId.Sha512:
-                    hashAlg = new SHA512Managed();
-                    break;
-                default:
-                    Globs.Throw<ArgumentException>("AlgId is not a supported hash algorithm");
-                    return null;
-            }
-            return hashAlg.ComputeHash(dataToHash);
-#else // WINDOWS_UWP
             string algName;
             switch (algId)
             {
@@ -85,7 +45,6 @@ namespace Tpm2Lib
             byte[] digest;
             CryptographicBuffer.CopyToByteArray(hashedData, out digest);
             return digest;
-#endif
         }
 
         public static readonly TpmAlgId[] DefinedHashAlgorithms = {
@@ -158,7 +117,6 @@ namespace Tpm2Lib
             return 0;
         }
 
-#if !TSS_USE_BCRYPT
         /// <summary>
         /// Get the CAPI name for a hash algorithm.
         /// </summary>
@@ -181,50 +139,9 @@ namespace Tpm2Lib
                     return "sha1";
             }
         }
-#endif // !TSS_USE_BCRYPT
 
         public static byte[] HmacData(TpmAlgId hashAlgId, byte[] key, byte[] dataToHash)
         {
-#if TSS_USE_BCRYPT
-            string algName = Native.BCryptHashAlgName(hashAlgId);
-            if (string.IsNullOrEmpty(algName))
-            {
-                Globs.Throw<ArgumentException>("HmacData(): Unsupported hash algorithm " + hashAlgId);
-                return null;
-            }
-
-            var alg = new BCryptAlgorithm(algName, Native.BCRYPT_ALG_HANDLE_HMAC);
-            var digest = alg.HmacData(key, dataToHash);
-            alg.Close();
-            return digest;
-#elif !WINDOWS_UWP
-            switch (hashAlgId)
-            {
-                case TpmAlgId.Sha1:
-                    using (var h = new HMACSHA1(key))
-                    {
-                        return h.ComputeHash(dataToHash);
-                    }
-                case TpmAlgId.Sha256:
-                    using (var h2 = new HMACSHA256(key))
-                    {
-                        return h2.ComputeHash(dataToHash);
-                    }
-                case TpmAlgId.Sha384:
-                    using (var h3 = new HMACSHA384(key))
-                    {
-                        return h3.ComputeHash(dataToHash);
-                    }
-                case TpmAlgId.Sha512:
-                    using (var h4 = new HMACSHA512(key))
-                    {
-                        return h4.ComputeHash(dataToHash);
-                    }
-                default:
-                    Globs.Throw<ArgumentException>("HmacData(): Unsupported hash algorithm " + hashAlgId);
-                    return null;
-            }
-#else // WINDOWS_UWP
             string algName;
             switch (hashAlgId)
             {
@@ -251,7 +168,6 @@ namespace Tpm2Lib
             byte[] hmac;
             CryptographicBuffer.CopyToByteArray(hmacBuffer, out hmac);
             return hmac;
-#endif // !TSS_USE_BCRYPT && WINDOWS_UWP
         }
 
         public static bool VerifyHmacSignature(TpmAlgId hashAlg, byte[] key, byte[] dataToSign, byte[] sig)

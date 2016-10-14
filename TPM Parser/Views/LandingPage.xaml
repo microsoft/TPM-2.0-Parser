@@ -2,7 +2,7 @@
     x:Class="TPM_Parser.Views.LandingPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:TPM_Parser"
+    xmlns:local="using:TPM_Parser.Views"
     xmlns:c="using:TPM_Parser.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"

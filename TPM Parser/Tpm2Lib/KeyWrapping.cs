@@ -38,51 +38,32 @@ namespace Tpm2Lib
             TpmAlgId nameHash,
             byte[] publicName,
             TpmAlgId parentNameAlg,
-            byte[] parentSeed,
-            TssObject.Transformer f = null)
+            byte[] parentSeed)
         {
             // ReSharper disable once InconsistentNaming
             byte[] tpm2bIv = Marshaller.ToTpm2B(iv);
-            Transform(tpm2bIv, f);
 
             byte[] sensitive = sens.GetTpmRepresentation();
-            Transform(sensitive, f);
 
             // ReSharper disable once InconsistentNaming
             byte[] tpm2bSensitive = Marshaller.ToTpm2B(sensitive);
-            Transform(tpm2bSensitive, f);
 
             byte[] encSensitive = SymmCipher.Encrypt(symWrappingAlg, symKey, iv, tpm2bSensitive);
-            Transform(encSensitive, f);
             byte[] decSensitive = SymmCipher.Decrypt(symWrappingAlg, symKey, iv, encSensitive);
-            Debug.Assert(f != null || Globs.ArraysAreEqual(decSensitive, tpm2bSensitive));
 
             var hmacKeyBits = CryptoLib.DigestSize(parentNameAlg) * 8;
             byte[] hmacKey = KDF.KDFa(parentNameAlg, parentSeed, "INTEGRITY", new byte[0], new byte[0], hmacKeyBits);
-            Transform(hmacKey, f);
 
             byte[] dataToHmac = Marshaller.GetTpmRepresentation(tpm2bIv,
                                                                 encSensitive,
                                                                 publicName);
-            Transform(dataToHmac, f);
 
             byte[] outerHmac = CryptoLib.HmacData(parentNameAlg, hmacKey, dataToHmac);
-            Transform(outerHmac, f);
 
             byte[] priv = Marshaller.GetTpmRepresentation(Marshaller.ToTpm2B(outerHmac),
                                                           tpm2bIv,
                                                           encSensitive);
-            Transform(priv, f);
             return priv;
-        }
-
-        private static void Transform(byte[] x, TssObject.Transformer f)
-        {
-            if (f == null)
-            {
-                return;
-            }
-            f(x);
         }
     }
 }

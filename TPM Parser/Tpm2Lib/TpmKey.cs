@@ -5,14 +5,7 @@ Microsoft Confidential
 
 */
 using System;
-using System.Diagnostics;
 using System.Text;
-
-#if !WINDOWS_UWP
-#if !TSS_USE_BCRYPT
-using System.Security.Cryptography;
-#endif
-#endif // !WINDOWS_UWP
 
 namespace Tpm2Lib
 {
@@ -41,36 +34,6 @@ namespace Tpm2Lib
             byte[] rawData = GetTpmRepresentation();
             TpmHash pubDigest = TpmHash.FromData(nameAlg, rawData);
             return Marshaller.GetTpmRepresentation(pubDigest);
-        }
-
-        public delegate void Transformer(byte[] x);
-
-        internal Transformer TransformerCallback;
-
-        /// <summary>
-        /// Install a transformer callback (for debugging). Transformer is called on several
-        /// code-paths in creating SW-generated keys, import blobs, and activation
-        /// blobs. Transformer can arbitrarily manipulate the byte array parameter and the
-        /// transformed value will be used (this allows a caller to transform parameters
-        /// that are hard to affect in the raw TPM command because they are protected by
-        /// crypto.
-        /// Note that the transformer callback should only work on a fraction (say 10%)
-        /// of the calls because the it is called several times during preparation of some
-        /// data structures and if one always modifies the first then it is possible that
-        /// the second is never processed by the TPM.
-        /// </summary>
-        /// <param name="transformer"></param>
-        public void _SetTransformer(Transformer transformer)
-        {
-            TransformerCallback = transformer;
-        }
-
-        private void Transform(byte[] x)
-        {
-            if (TransformerCallback != null)
-            {
-                TransformerCallback(x);
-            }
         }
 
         /// <summary>
@@ -287,38 +250,27 @@ namespace Tpm2Lib
                     return new byte[0];
             }
 
-            Transform(seed);
-            Transform(encSecret);
-
             var cvx = new Tpm2bDigest(secret);
             byte[] cvTpm2B = Marshaller.GetTpmRepresentation(cvx);
-            Transform(cvTpm2B);
 
             SymDefObject symDef = TssObject.GetSymDef(this);
             byte[] symKey = KDF.KDFa(nameAlg, seed, "STORAGE", nameOfKeyToBeActivated, new byte[0], symDef.KeyBits);
-            Transform(symKey);
 
             byte[] encIdentity;
             using (SymmCipher symm2 = SymmCipher.Create(symDef, symKey))
             {
                 encIdentity = symm2.Encrypt(cvTpm2B);
             }
-            Transform(encIdentity);
 
             var hmacKeyBits = CryptoLib.DigestSize(nameAlg);
             byte[] hmacKey = KDF.KDFa(nameAlg, seed, "INTEGRITY", new byte[0], new byte[0], hmacKeyBits * 8);
-            Transform(hmacKey);
             byte[] outerHmac = CryptoLib.HmacData(nameAlg,
                                                   hmacKey,
                                                   Globs.Concatenate(encIdentity, nameOfKeyToBeActivated));
-            Transform(outerHmac);
 
             byte[] activationBlob = Globs.Concatenate(
                                                       Marshaller.ToTpm2B(outerHmac),
                                                       encIdentity);
-
-            Transform(activationBlob);
-
             encryptedSecret = encSecret;
 
             return activationBlob;
@@ -344,36 +296,6 @@ namespace Tpm2Lib
         {
             publicPart = thePublicPart;
             privatePart = thePrivatePart;
-        }
-
-        public delegate void Transformer(byte[] x);
-
-        private Transformer TransformerCallback;
-
-        /// <summary>
-        /// Install a transformer callback (for debugging). Transformer is called on several
-        /// code-paths in creating SW-generated keys, import blobs, and activation
-        /// blobs. Transformer can arbitrarily manipulate the byte array parameter and the
-        /// transformed value will be used (this allows a caller to transform parameters
-        /// that are hard to affect in the raw TPM command because they are protected by
-        /// crypto.
-        /// Note that the transformer callback should only work on a fraction (say 10%)
-        /// of the calls because the it is called several times during preparation of some
-        /// data structures and if one always modifies the first then it is possible that
-        /// the second is never processed by the TPM.
-        /// </summary>
-        /// <param name="transformer"></param>
-        public void _SetTransformer(Transformer transformer)
-        {
-            TransformerCallback = transformer;
-        }
-
-        private void Transform(byte[] x)
-        {
-            if (TransformerCallback != null)
-            {
-                TransformerCallback(x);
-            }
         }
 
         /// <summary>
@@ -419,7 +341,6 @@ namespace Tpm2Lib
 
             // Figure out how many bits we will need from the KDF
             byte[] parentSymValue = intendedParent.sensitivePart.seedValue;
-            Transform(parentSymValue);
             byte[] iv = Globs.GetRandomBytes(SymmCipher.GetBlockSize(symDef));
 
             // The encryption key is calculated with a KDF
@@ -430,8 +351,6 @@ namespace Tpm2Lib
                                      new byte[0],
                                      symDef.KeyBits);
 
-            Transform(symKey);
-
             byte[] newPrivate = KeyWrapper.CreatePrivateFromSensitive(symDef,
                                                                       symKey,
                                                                       iv,
@@ -439,9 +358,8 @@ namespace Tpm2Lib
                                                                       publicPart.nameAlg,
                                                                       publicPart.GetName(),
                                                                       intendedParent.publicPart.nameAlg,
-                                                                      intendedParent.sensitivePart.seedValue,
-                                                                      TransformerCallback);
-            Transform(newPrivate);
+                                                                      intendedParent.sensitivePart.seedValue);
+
             return new TpmPrivate(newPrivate);
         }
 
@@ -474,18 +392,14 @@ namespace Tpm2Lib
             {
                 // No inner wrapper
                 encSensitive = Marshaller.ToTpm2B(sensitivePart.GetTpmRepresentation());
-                Transform(encSensitive);
             }
             else
             {
                 byte[] sens = Marshaller.ToTpm2B(sensitivePart.GetTpmRepresentation());
                 byte[] toHash = Globs.Concatenate(sens, GetName());
-                Transform(toHash);
                 byte[] innerIntegrity = Marshaller.ToTpm2B(CryptoLib.HashData(publicPart.nameAlg, toHash));
                 byte[] innerData = Globs.Concatenate(innerIntegrity, sens);
-                Transform(innerData);
                 encSensitive = innerWrapper.Encrypt(innerData);
-                Transform(encSensitive);
             }
 
             byte[] seed, encSecret;
@@ -513,32 +427,25 @@ namespace Tpm2Lib
                         return new TpmPrivate();
                 }
             }
-            Transform(seed);
-            Transform(encSecret);
 
             encryptedWrappingKey = encSecret;
 
             byte[] symKey = KDF.KDFa(newParent.nameAlg, seed, "STORAGE", publicPart.GetName(), new byte[0], symDef.KeyBits);
-            Transform(symKey);
 
             byte[] dupSensitive;
             using (SymmCipher enc2 = SymmCipher.Create(symDef, symKey))
             {
                 dupSensitive = enc2.Encrypt(encSensitive);
             }
-            Transform(dupSensitive);
 
             var npNameNumBits = CryptoLib.DigestSize(newParent.nameAlg) * 8;
             byte[] hmacKey = KDF.KDFa(newParent.nameAlg, seed, "INTEGRITY", new byte[0], new byte[0], npNameNumBits);
 
             byte[] outerDataToHmac = Globs.Concatenate(dupSensitive, publicPart.GetName());
-            Transform(outerDataToHmac);
 
             byte[] outerHmac = Marshaller.ToTpm2B(CryptoLib.HmacData(newParent.nameAlg, hmacKey, outerDataToHmac));
-            Transform(outerHmac);
 
             byte[] dupBlob = Globs.Concatenate(outerHmac, dupSensitive);
-            Transform(dupBlob);
 
             return new TpmPrivate(dupBlob);
         }

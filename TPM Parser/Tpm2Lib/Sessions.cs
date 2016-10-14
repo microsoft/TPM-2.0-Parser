@@ -175,12 +175,6 @@ namespace Tpm2Lib
         public byte[] SessionKey;
 
         /// <summary>
-        /// By default policy sessions do NOT include the authValue of the associated entity in 
-        /// the HMAC. The caller can add it in by calling PolicyAuthValue.
-        /// </summary>
-        internal bool SessIncludesAuth;
-
-        /// <summary>
         /// If SessIncludesAuth is true, then PlaintextAuth implies that the authVal is used like
         /// PWAP. Else the hmac computation is performed.  
         /// </summary>
@@ -412,7 +406,7 @@ namespace Tpm2Lib
             byte[] auth = Handle.Auth;
             if (AuthHandle != null && Handle != TpmRh.TpmRsPw && auth == null &&
                 ((SessionType != TpmSe.Policy && BindObject != AuthHandle) ||
-                 (SessionType == TpmSe.Policy && SessIncludesAuth)))
+                 (SessionType == TpmSe.Policy)))
             {
                 auth = Globs.TrimTrailingZeros(AuthHandle.Auth);
             }
@@ -421,75 +415,7 @@ namespace Tpm2Lib
                                                         nonceDec, nonceEnc, sessionAttrs});
 
             byte[] hmac = CryptoLib.HmacData(AuthHash, hmacKey, bufToHmac);
-#if false
-            Console.WriteLine(Globs.FormatBytesCompact("hmacKey: ", hmacKey));
-            Console.WriteLine(Globs.FormatBytesCompact("nonceNewer: ", nonceNewer));
-            Console.WriteLine(Globs.FormatBytesCompact("nonceOlder: ", nonceOlder));
-            Console.WriteLine(Globs.FormatBytesCompact("nonceDec: ", nonceDec));
-            Console.WriteLine(Globs.FormatBytesCompact("nonceEnc: ", nonceEnc));
-            Console.WriteLine(Globs.FormatBytesCompact("attrs: ", sessionAttrs));
-            Console.WriteLine(Globs.FormatBytesCompact("HMAC: ", hmac));
-#endif
             return hmac;
-        }
-
-        /// <summary>
-        /// Run a path on the policy tree.  The path is identified by the leaf identifier string. A session is
-        /// created and returned. If allowErrors is true then errors returned do not cause an exception (but 
-        /// are returned in the response code).
-        /// </summary>
-        /// <param name="tpm"></param>
-        /// <param name="policySession"></param>
-        /// <param name="branchToEvaluate"></param>
-        /// <param name="allowErrors"></param>
-        /// <returns></returns>
-        public TpmRc RunPolicy(Tpm2 tpm, PolicyTree policyTree, string branchToEvaluate = null, bool allowErrors = false)
-        {
-            policyTree.AllowErrorsInPolicyEval = allowErrors;
-
-            PolicyAce leafAce = null;
-
-            // First, check that the policy is OK.
-            policyTree.CheckPolicy(branchToEvaluate, ref leafAce);
-            if (leafAce == null)
-            {
-                Globs.Throw("RunPolicy: Branch identifier " + branchToEvaluate + " does not exist");
-            }
-
-            var responseCode = TpmRc.Success;
-            try
-            {
-                if (allowErrors)
-                {
-                    tpm._DisableExceptions();
-                }
-
-                tpm._InitializeSession(this);
-
-                // Walk up the tree from the leaf..
-                PolicyAce nextAce = leafAce;
-                while (nextAce != null)
-                {
-                    responseCode = nextAce.Execute(tpm, this, policyTree);
-
-                    if (responseCode != TpmRc.Success)
-                    {
-                        break;
-                    }
-
-                    // ..and continue along the path to the root
-                    nextAce = nextAce.PreviousAce;
-                }
-            }
-            finally
-            {
-                if (allowErrors)
-                {
-                    tpm._EnableExceptions();
-                }
-            }
-
-            return responseCode;
         }
     } // class AuthSession
 

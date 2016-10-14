@@ -34,7 +34,7 @@ namespace Tpm2Lib
             }
             set
             {
-                if (!CryptoLib.IsHashAlgorithm(value) && Tpm2._TssBehavior.Strict)
+                if (!CryptoLib.IsHashAlgorithm(value))
                 {
                     Globs.Throw<ArgumentException>("TpmHash.HashAlg: Invalid hash algorithm ID");
                 }
@@ -526,29 +526,6 @@ namespace Tpm2Lib
         public static implicit operator TpmHandle (TpmHandleX from) { return from.Handle; }
     }
 
-#if false
-    // Example of handle based TPMI typedef implementation
-    [DataContract]
-    [SpecTypeName("TPMI_RH_NV_INDEX")]
-    public class TpmiRhNvIndex : TpmHandle
-    {
-        public TpmiRhNvIndex() : base() {}
-        public TpmiRhNvIndex(uint h) : base(h) {}
-        public TpmiRhNvIndex(TpmHandle h) : base(h, TpmHandle.Bind.ByRef) {}
-
-        public static implicit operator TpmiRhNvIndex (TpmHandleX from)
-        {
-            return new TpmiRhNvIndex(from.Handle);
-        }
-        public static implicit operator TpmHandleX (TpmiRhNvIndex from)
-        {
-            return new TpmHandleX(from.BoundHandle != null &&
-                                  from.BoundHandle.handle == from.handle ? from.BoundHandle
-                                                                         : (TpmHandle)from);
-        }
-    }
-#endif
-
     /// <summary>
     /// TpmHandle represents TPM-loaded entities (keys, etc.), well-know objects like the owner and PCR, and NV-entries.
     /// TpmHandle can also contain the name of the referenced entity (for authorization hmacs, etc.)
@@ -606,21 +583,6 @@ namespace Tpm2Lib
         /// </summary>
         public byte[] GetName(Tpm2 tpm)
         {
-            Ht ht = GetType();
-            if (_Name == null)
-            {
-                if (ht == Ht.NvIndex)
-                {
-                    tpm.NvReadPublic(this, out _Name);
-                    return _Name;
-                }
-                if (ht == Ht.Transient || ht == Ht.Persistent)
-                {
-                    byte[] qName;
-                    tpm.ReadPublic(this, out _Name, out qName);
-                    return _Name;
-                }
-            }
             return GetName();
         }
 

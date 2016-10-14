@@ -15,15 +15,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-#if WINDOWS_UWP
 using Windows.Storage.Streams;
 using Windows.Security.Cryptography;
-#else // WINDOWS_UWP
-#if !TSS_USE_BCRYPT
-using System.Security.Cryptography;
-#endif
-#endif // WINDOWS_UWP
-
 
 namespace Tpm2Lib
 {
@@ -335,16 +328,6 @@ namespace Tpm2Lib
             return FromBytes(t, data);
         }
 
-        // RNG used when seeded random numbers are required
-#if !WINDOWS_UWP
-#if !TSS_USE_BCRYPT
-        /// <summary>
-        /// Default RNG used by the library (for nonces, and if a random auth-value is required, etc.)
-        /// </summary>
-        private static readonly RNGCryptoServiceProvider CryptoRand = new RNGCryptoServiceProvider();
-#endif
-#endif // !WINDOWS_UWP
-
         /// <summary>
         /// Seed for the PRNG for this run.  Maybe set from the system cryptographic random sounce, or
         /// may be set through SetRngSeed().
@@ -392,17 +375,8 @@ namespace Tpm2Lib
                 if (_randSeed == null)
                 {
                     _randSeed = new byte[32];
-#if WINDOWS_UWP
                     IBuffer buffer = CryptographicBuffer.GenerateRandom(32);
                     CryptographicBuffer.CopyToByteArray(buffer, out _randSeed);
-#else // WINDOWS_UWP
-#if TSS_USE_BCRYPT
-                    var rnd = new Random();
-                    rnd.NextBytes(_randSeed);
-#else
-                    CryptoRand.GetBytes(_randSeed);
-#endif
-#endif // WINDOWS_UWP
                     _randRound = 0;
                     _randBuf = null;
                 }
@@ -439,15 +413,9 @@ namespace Tpm2Lib
         private static void FillRandBuf()
         {
             // Fill the buffer with random data
-#if WINDOWS_UWP
             byte[] data;
             IBuffer buffer = CryptographicBuffer.GenerateRandom(RandMaxBytes);
             CryptographicBuffer.CopyToByteArray(buffer, out data);
-#else // WINDOWS_UWP
-            byte[] data = KDF.KDFa(TpmAlgId.Sha256, _randSeed, "RNG",
-                                   BitConverter.GetBytes(_randRound),
-                                   new byte[0], RandMaxBytes * 8);
-#endif // WINDOWS_UWP
             _randRound++;
             _randBuf = new ByteBuf(data);
         }
@@ -1171,11 +1139,7 @@ namespace Tpm2Lib
 
         public static A GetAttr<A>(MemberInfo memInfo) where A : class
         {
-#if TSS_MIN_API
             Object[] attr = memInfo.GetCustomAttributes(typeof(A), false).ToArray();
-#else
-            Object[] attr = memInfo.GetCustomAttributes(typeof(A), false);
-#endif
             if (attr.Length == 0)
             {
                 return null;
@@ -1186,22 +1150,14 @@ namespace Tpm2Lib
 
         public static string[] ReadAllLines(string fileName, Encoding enc = null)
         {
-#if TSS_MIN_API
             string t = enc == null ? File.ReadAllText(fileName)
                                    : File.ReadAllText(fileName, enc);
             return t.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
-#else
-            return enc == null ? File.ReadAllLines(fileName)
-                               : File.ReadAllLines(fileName, enc);
-#endif
         }
 
         public static void Throw<E>(string exceptionMsg) where E : Exception
         {
-            if (!Tpm2._TssBehavior.Passthrough)
-            {
-                throw Activator.CreateInstance(typeof(E), exceptionMsg) as E;
-            }
+            throw Activator.CreateInstance(typeof(E), exceptionMsg) as E;
         }
 
         public static void Throw<E>(string failedFunction, int errorCode) where E : Exception
@@ -1226,12 +1182,8 @@ namespace Tpm2Lib
 
     public class ByteArrayComparer : IEqualityComparer<byte[]>
     {
-        Tpm2 my_tpm;
-
-        public ByteArrayComparer(Tpm2 tpm)
-        {
-            my_tpm = tpm;
-        }
+        public ByteArrayComparer()
+        { }
 
         bool IEqualityComparer<byte[]>.Equals(byte[] x, byte[] y)
         {
@@ -1241,8 +1193,7 @@ namespace Tpm2Lib
 
         int IEqualityComparer<byte[]>.GetHashCode(byte[] obj)
         {
-            TkHashcheck validation;
-            return BitConverter.ToInt32(my_tpm.Hash(obj as byte[], TpmAlgId.Sha1, TpmRh.Owner, out validation), 0);
+            return BitConverter.ToInt32(CryptoLib.HashData(TpmAlgId.Sha1, obj as byte[]), 0);
         }
     } // class ByteArrayComparer
 

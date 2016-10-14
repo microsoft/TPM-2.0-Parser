@@ -5,8 +5,6 @@ Microsoft Confidential
 
 */
 using System;
-using System.Diagnostics;
-using System.Runtime.Serialization;
 
 namespace Tpm2Lib
 {
@@ -17,16 +15,9 @@ namespace Tpm2Lib
     /// </summary>
     public class TssException : Exception
     {
-#if !TSS_NO_STACK && !WINDOWS_UWP
-        public StackTrace CallerStack;
-#endif
-
         public TssException(string message)
             : base(message)
         {
-#if !TSS_NO_STACK && !WINDOWS_UWP
-            CallerStack = new StackTrace(true);
-#endif
         }
     }
 

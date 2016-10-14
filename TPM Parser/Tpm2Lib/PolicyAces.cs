@@ -115,42 +115,6 @@ namespace Tpm2Lib
             return ss;
         }
 
-#if __XML_SCHEMA_EXPORT__
-        public static string GetSchema(IEnumerable<Type> typesToExport)
-        {
-            XsdDataContractExporter exporter = new XsdDataContractExporter();
-            Type headType = null;
-            foreach (Type t in typesToExport)
-            {
-                if(headType ==null) headType = t;
-                if (!exporter.CanExport(t)) throw new ArgumentException("cannot export type: " + t.ToString());
-                exporter.Export(t);
-                Console.WriteLine("number of schemas: {0}", exporter.Schemas.Count);
-                Console.WriteLine();
-            }
-            XmlSchemaSet schemas = exporter.Schemas;
-
-            XmlQualifiedName XmlNameValue = exporter.GetRootElementName(headType);
-            string ns = XmlNameValue.Namespace;
-
-            StringWriter w = new StringWriter();
-            foreach (XmlSchema schema in schemas.Schemas(ns))
-            {
-                //if(schema.
-                schema.Write(w);
-            }
-
-            Debug.WriteLine(w.ToString());
-
-            return schemas.ToString();
-        }
-#endif // __XML_SCHEMA_EXPORT__    
-
-        /// <summary>
-        /// Set if the ACE is associated with a PolicyTree.
-        /// </summary>
-        internal PolicyTree AssociatedPolicy;
-
         /// <summary>
         /// Previous is closer to the root.
         /// </summary>
@@ -205,10 +169,29 @@ namespace Tpm2Lib
             return arr[0];
         }
 
+        protected PolicyAce[] ChainToArray(PolicyAce ace)
+        {
+            int count = 0;
+            PolicyAce curr = ace;
+            while (curr.NextAce != null)
+            {
+                count++;
+                curr = curr.NextAce;
+            }
+            PolicyAce[] arr = new PolicyAce[count];
+            curr = ace;
+            for (int i = 0; i < count; i++)
+            {
+                arr[i] = curr;
+                curr = curr.NextAce;
+                arr[i].PreviousAce = null;
+                arr[i].NextAce = null;
+            }
+            return arr;
+        }
+
         internal abstract TpmHash GetPolicyDigest(TpmAlgId hashAlg);
 
-        // ReSharper disable once InconsistentNaming
-        internal abstract TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy);
         [DataMember(EmitDefaultValue=false)]
         public string NodeId = null;
     }
@@ -303,14 +286,6 @@ namespace Tpm2Lib
             return new TpmHash(hashAlg, polVal);
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            Tpm2bDigest[] branchList = GetPolicyHashArray(policy.PolicyHash.HashAlg);
-            tpm.PolicyOR(authSession, branchList);
-            return tpm._GetLastResponseCode();
-        }
-
         /// <summary>
         /// Current policy-branches for PolicyOr (up to 8)
         /// </summary>
@@ -329,7 +304,7 @@ namespace Tpm2Lib
                 var arr = new PolicyAce[PolicyBranches.Count][];
                 for (int j = 0; j < PolicyBranches.Count; j++)
                 {
-                    arr[j] = TpmPolicy.GetArrayRepresentation(PolicyBranches[j]);
+                    arr[j] = ChainToArray(PolicyBranches[j]);
                 }
                 return arr;
             }
@@ -381,13 +356,6 @@ namespace Tpm2Lib
             m.Put(Pcrs.GetTpmlPcrSelection(), "selection");
             m.Put(Pcrs.GetSelectionHash(hashAlg).HashData, "pcrs");
             return GetNextAcePolicyDigest(hashAlg).Extend(m.GetBytes());
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession policySession, PolicyTree policy)
-        {
-            tpm.PolicyPCR(policySession, Pcrs.GetSelectionHash(policy.PolicyHash.HashAlg), Pcrs.GetPcrSelectionArray());
-            return tpm._GetLastResponseCode();
         }
 
         internal PcrValueCollection Pcrs;
@@ -447,13 +415,6 @@ namespace Tpm2Lib
             return hashNow;
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession policySession, PolicyTree policy)
-        {
-            tpm.PolicyCounterTimer(policySession, OperandB, Offset, Operation);
-            return tpm._GetLastResponseCode();
-        }
-        
         [DataMember()]
         public byte[] OperandB;
         [DataMember()]
@@ -488,13 +449,6 @@ namespace Tpm2Lib
             return GetNextAcePolicyDigest(hashAlg).Extend(m.GetBytes());
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyCommandCode(authSession, AllowedCommand);
-            return tpm._GetLastResponseCode();
-        }
-
         [MarshalAs(0)]
         [DataMember()]
         public TpmCc AllowedCommand;
@@ -526,13 +480,6 @@ namespace Tpm2Lib
             m.Put(TpmCc.PolicyCpHash, "commandCode");
             m.Put(CpHash.HashData, "hashData");
             return GetNextAcePolicyDigest(hashAlg).Extend(m.GetBytes());
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyCpHash(authSession, CpHash);
-            return tpm._GetLastResponseCode();
         }
 
         public TpmHash CpHash;
@@ -569,13 +516,6 @@ namespace Tpm2Lib
             return GetNextAcePolicyDigest(hashAlg).Extend(m.GetBytes());
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyNameHash(authSession, NameHash);
-            return tpm._GetLastResponseCode();
-        }
-
         public byte[] NameHash;
     }
 
@@ -605,13 +545,6 @@ namespace Tpm2Lib
             m.Put(TpmCc.PolicyLocality, "ordinal");
             m.Put(AllowedLocality, "locality");
             return GetNextAcePolicyDigest(hashAlg).Extend(m.GetBytes());
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyLocality(authSession, AllowedLocality);
-            return tpm._GetLastResponseCode();
         }
 
         [MarshalAs(0)]
@@ -674,34 +607,6 @@ namespace Tpm2Lib
             return GetNextAcePolicyDigest(hashAlg).Extend(m.GetBytes());
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            TpmRc res;
-
-            if (AuthorizationHandle == null)
-            {
-                TpmHandle nvHandle, authHandle;
-                SessionBase nvAuth;
-                AssociatedPolicy.ExecutePolicyNvCallback(this, out authHandle, out nvHandle, out nvAuth);
-                tpm[nvAuth].PolicyNV(authHandle, nvHandle, authSession,
-                                     OperandB, Offset, Operation);
-                res = tpm._GetLastResponseCode();
-
-                if (!(nvAuth is Pwap))
-                {
-                    tpm.FlushContext(nvAuth);
-                }
-            }
-            else
-            {
-                tpm[NvAccessAuth].PolicyNV(AuthorizationHandle, NvIndex, authSession,
-                    OperandB, Offset, Operation);
-                res = tpm._GetLastResponseCode();
-            }
-            return res;
-        }
-
         internal TpmHandle NvIndex;
         public byte[] OperandB;
         public ushort Offset;
@@ -731,14 +636,6 @@ namespace Tpm2Lib
         {
             return GetNextAcePolicyDigest(hashAlg).Extend(Marshaller.GetTpmRepresentation(TpmCc.PolicyAuthValue));
         }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyAuthValue(authSession);
-            authSession.SessIncludesAuth = true;
-            return tpm._GetLastResponseCode();
-        }
     }
 
     /// <summary>
@@ -757,13 +654,6 @@ namespace Tpm2Lib
         {
             Globs.Throw("Do not include PolicyRestart in policy trees.");
             return new TpmHash(hashAlg);
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            Globs.Throw("Do not include PolicyRestart in running policies");
-            return TpmRc.Policy;
         }
     }
 
@@ -789,15 +679,6 @@ namespace Tpm2Lib
         {
             return GetNextAcePolicyDigest(hashAlg).Extend(Marshaller.GetTpmRepresentation(TpmCc.PolicyAuthValue));
         }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyPassword(authSession);
-            authSession.SessIncludesAuth = true;
-            authSession.PlaintextAuth = true;
-            return tpm._GetLastResponseCode();
-        }
     }
 
     /// <summary>
@@ -821,13 +702,6 @@ namespace Tpm2Lib
         internal override TpmHash GetPolicyDigest(TpmAlgId hashAlg)
         {
             return GetNextAcePolicyDigest(hashAlg).Extend(Marshaller.GetTpmRepresentation(TpmCc.PolicyPhysicalPresence));
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyPhysicalPresence(authSession);
-            return tpm._GetLastResponseCode();
         }
     }
 
@@ -910,72 +784,10 @@ namespace Tpm2Lib
             return PolicyUpdate(atStart, TpmCc.PolicySigned, AuthObjectName, PolicyRef);
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            byte[] nonceTpm = UseNonceTpm ? Globs.CopyData(authSession.NonceTpm) : new byte[0];
-
-            var dataToSign = new Marshaller();
-            dataToSign.Put(nonceTpm, "");
-            ISignatureUnion signature;
-            // If the library has been given a signing key we can do the challenge here (else we need to call out)
-            TpmHandle verificationKey;
-            if (SigningKey != null)
-            {
-                dataToSign.Put(ExpirationTime, "");
-                dataToSign.Put(CpHash, "");
-                dataToSign.Put(PolicyRef, "");
-                // Just ask the key to sign the challenge
-                signature = SigningKey.Sign(dataToSign.GetBytes());
-                verificationKey = tpm.LoadExternal(null, SigningKeyPub, TpmRh.Owner);
-            }
-            else
-            {
-                TpmPublic verifier;
-                signature = AssociatedPolicy.ExecuteSignerCallback(this, nonceTpm, out verifier);
-                verificationKey = tpm.LoadExternal(null, verifier, TpmRh.Owner);
-            }
-            TkAuth policyTicket;
-
-            Timeout = tpm.PolicySigned(verificationKey,
-                                       authSession,
-                                       nonceTpm,
-                                       CpHash,
-                                       PolicyRef,
-                                       ExpirationTime,
-                                       signature,
-                                       out policyTicket);
-
-            TpmRc responseCode = tpm._GetLastResponseCode();
-            // Save the policyTicket in case it is needed later
-            PolicyTicket = policyTicket;
-            tpm.FlushContext(verificationKey);
-            return responseCode;
-        }
-
         internal AsymCryptoSystem SigningKey;
         internal TpmPublic SigningKeyPub = null;
 
         public byte[] AuthObjectName;
-
-        /*
-        // stuff for XML serialization 
-        public TpmPublic AuthObject
-        {
-            get
-            {
-                if (SigningKeyPub != null)
-                {
-                    return SigningKeyPub;
-                }
-                return SigningKey.GetPublicParms();
-            }
-            set
-            {
-                SigningKeyPub = value;
-            }
-        }
-         * */
     }
 
     /// <summary>
@@ -1020,54 +832,6 @@ namespace Tpm2Lib
             TpmHash atStart = GetNextAcePolicyDigest(hashAlg);
             TpmHash atEnd = PolicyUpdate(atStart, TpmCc.PolicySecret, AuthorityName, PolicyRef);
             return atEnd;
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            TpmRc res;
-            byte[] nonceTpm = UseNonceTpm ? Globs.CopyData(authSession.NonceTpm) : new byte[0];
-
-            if (AuthVal == null)
-            {
-                SessionBase session;
-                TpmHandle authorizedEntity;
-                bool flushHandleOnCompletion;
-
-                AssociatedPolicy.ExecutePolicySecretCallback(this,
-                                                              out session,
-                                                              out authorizedEntity,
-                                                              out flushHandleOnCompletion);
-
-                Timeout = tpm[session].PolicySecret(authorizedEntity,
-                                                    authSession,
-                                                    nonceTpm,
-                                                    CpHash,
-                                                    PolicyRef,
-                                                    ExpirationTime,
-                                                    out PolicyTicket);
-                res = tpm._GetLastResponseCode();
-                if (flushHandleOnCompletion)
-                {
-                    tpm.FlushContext(authorizedEntity);
-                }
-                if (!(session is Pwap))
-                {
-                    tpm.FlushContext(session);
-                }
-            }
-            else
-            {
-                Timeout = tpm[AuthVal].PolicySecret(AuthorityHandle,
-                                                    authSession,
-                                                    nonceTpm,
-                                                    CpHash,
-                                                    PolicyRef,
-                                                    ExpirationTime,
-                                                    out PolicyTicket);
-                res = tpm._GetLastResponseCode();
-            }
-            return res;
         }
 
         public AuthValue AuthVal;
@@ -1143,22 +907,6 @@ namespace Tpm2Lib
             return secondExtend;
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            if (ObjectName == null)
-            {
-                ObjectName = AuthorizingKey.GetName();
-            }
-            tpm.PolicyTicket(authSession,
-                             ExpirationTime,
-                             CpHash,
-                             PolicyRef,
-                             Marshaller.GetTpmRepresentation(ObjectName),
-                             Ticket);
-            return tpm._GetLastResponseCode();
-        }
-
         public TpmPublic AuthorizingKey;
         public byte[] ExpirationTime;
         public byte[] CpHash;
@@ -1179,11 +927,6 @@ namespace Tpm2Lib
     /// </summary>
     public class TpmPolicyAuthorize : PolicyAce
     {
-        public delegate void ParamsCallback(Tpm2 tpm, ref TpmHandle policySession, ref byte[] approvedPolicy, ref byte[] policyRef, byte[] keySign, ref TkVerified checkTicket);
-
-        [XmlIgnore]
-        public ParamsCallback TheParamsCallback = null;
-
         /// <summary>
         /// This command allows policies to change. If a policy were static, 
         /// then it would be difficult to add users to a policy. This command lets a 
@@ -1228,66 +971,10 @@ namespace Tpm2Lib
             return atEnd;
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            byte[] dataToSign = Globs.Concatenate(PolicyToReplace, PolicyRef);
-            byte[] aHash = CryptoLib.HashData(SigningHash, dataToSign);
-
-            TpmHandle verifierHandle = tpm.LoadExternal(null, SigningKey, TpmRh.Owner);
-            if (policy.AllowErrorsInPolicyEval)
-            {
-                tpm._AllowErrors();
-            }
-
-            // todo - fix the serialization so that we can persist the interface
-            ISignatureUnion theSig = null;
-            if(null!= (Object) Sig1)
-            {
-                theSig = Sig1;
-            }
-            if (null != (Object)Sig2)
-            {
-                theSig = Sig2;
-            }
-
-            if (theSig != null)
-            {
-                Ticket = tpm.VerifySignature(verifierHandle, aHash, theSig);
-                TpmRc intermediateError = tpm._GetLastResponseCode();
-                if (intermediateError != TpmRc.Success)
-                {
-                    tpm.FlushContext(verifierHandle);
-                    return intermediateError;
-                }
-            }
-            else
-            {
-                // create a dummy ticket = e.g. for a trial session
-                Ticket = new TkVerified(TpmRh.Owner, new byte[0]);
-            }
-            tpm.FlushContext(verifierHandle);
-
-
-            byte[] keySign = SigningKey.GetName();
-            TpmHandle policySession = authSession;
-            if (TheParamsCallback != null)
-            {
-                TheParamsCallback(tpm, ref policySession, ref PolicyToReplace, ref PolicyRef, keySign, ref Ticket);
-            }
-            if (policy.AllowErrorsInPolicyEval)
-            {
-                tpm._AllowErrors();
-            }
-            tpm.PolicyAuthorize(policySession, PolicyToReplace, PolicyRef, keySign, Ticket);
-
-            return tpm._GetLastResponseCode();
-        }
         public byte[] PolicyToReplace;
         public byte[] PolicyRef;
         public TpmPublic SigningKey;
         public TpmAlgId SigningHash;
-        private TkVerified Ticket;
         // changed from SIgnatureSsa (see note above)
         //public ISignatureUnion Signature;
         public SignatureRsapss Sig1;
@@ -1322,12 +1009,6 @@ namespace Tpm2Lib
         {
             // Authorize NV results in a REPLACEMENT not an extend of the previous policy. 
             return PolicyUpdate1(TpmHash.ZeroHash(hashAlg), TpmCc.PolicyAuthorizeNV, NvIndexName);
-        }
-
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            tpm.PolicyAuthorizeNV(AuthHandle, NvIndex, authSession);
-            return tpm._GetLastResponseCode();
         }
     } // class TpmPolicyAuthorizeNV
 
@@ -1378,14 +1059,6 @@ namespace Tpm2Lib
             return previous.Extend(m.GetBytes());
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            byte includeName = IncludeObjectNameInPolicyHash ? (byte)1 : (byte)0;
-            tpm.PolicyDuplicationSelect(authSession, NameOfObject, NameOfNewParent, includeName);
-            return tpm._GetLastResponseCode();
-        }
-
         public byte[] NameOfObject;
         public byte[] NameOfNewParent;
         public bool IncludeObjectNameInPolicyHash;
@@ -1415,12 +1088,6 @@ namespace Tpm2Lib
             }
             TpmHash previous = GetNextAcePolicyDigest(hashAlg);
             return previous;
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            return TpmRc.Success;
         }
 
         // ReSharper disable once InconsistentNaming
@@ -1476,13 +1143,6 @@ namespace Tpm2Lib
             return previous;
         }
 
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            policy.ExecutePolicyActionCallback(this);
-            return TpmRc.Success;
-        }
-
         public Object Context = null;
     }
 
@@ -1515,14 +1175,6 @@ namespace Tpm2Lib
             m.Put(writtenName, "writtenSet");
             TpmHash previous = GetNextAcePolicyDigest(hashAlg);
             return previous.Extend(m.GetBytes());
-        }
-
-        // ReSharper disable once InconsistentNaming
-        internal override TpmRc Execute(Tpm2 tpm, AuthSession authSession, PolicyTree policy)
-        {
-            byte writtenName = IsNvIndexRequiredToHaveBeenWritten ? (byte)1 : (byte)0;
-            tpm.PolicyNvWritten(authSession, writtenName);
-            return tpm._GetLastResponseCode();
         }
 
         public bool IsNvIndexRequiredToHaveBeenWritten;

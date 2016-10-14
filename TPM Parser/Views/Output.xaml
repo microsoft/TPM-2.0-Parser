@@ -17,7 +17,7 @@
                         <AdaptiveTrigger MinWindowWidth="{StaticResource MediumWindowSnapPoint}" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
-                        <Setter Target="Layoutroot.Margin" Value="12,0,0,0"/>
+                        <Setter Target="LayoutRoot.Margin" Value="12,0,0,0"/>
                         <Setter Target="title.Style" Value="{StaticResource PageTitleTextBlockStyle}"/>
                     </VisualState.Setters>
                 </VisualState>
@@ -51,15 +51,17 @@
                 <Grid x:Name="ContentRoot" Margin="0,0,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <ComboBox Grid.Row="0" x:Name="TpmCommands" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
-                    <TextBox Grid.Row="1" x:Name="ResponseStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM response stream here" />
-                    <Button Grid.Row="2" x:Name="Decode" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" Content="Decode" Click="Decode_Click" />
-                    <TextBox Grid.Row="3" x:Name="DecodedResponse" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap"  Text="" VerticalAlignment="Stretch" PlaceholderText="decoded response" IsReadOnly="True" FontFamily="Consolas" />
+                    <TextBlock Grid.Row="0" Margin="20,10" Text="Select the command for which this response has been generated." />
+                    <ComboBox Grid.Row="1" x:Name="TpmCommands" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="2" x:Name="ResponseStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM response stream here" />
+                    <Button Grid.Row="3" x:Name="Decode" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" Content="Decode" Click="Decode_Click" />
+                    <TextBox Grid.Row="4" x:Name="DecodedResponse" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap"  Text="" VerticalAlignment="Stretch" PlaceholderText="decoded response" IsReadOnly="True" FontFamily="Consolas" />
 
                 </Grid>
             </StackPanel>
