@@ -34,7 +34,8 @@ namespace Tpm2Lib
             }
             set
             {
-                if (!CryptoLib.IsHashAlgorithm(value))
+                if (!CryptoLib.IsHashAlgorithm(value) &&
+                    value != TpmAlgId.Null)
                 {
                     Globs.Throw<ArgumentException>("TpmHash.HashAlg: Invalid hash algorithm ID");
                 }
@@ -55,7 +56,7 @@ namespace Tpm2Lib
         {
             get
             {
-                if (_HashData.Length == CryptoLib.DigestSize(_HashAlg))
+                if (_HashData.Length != CryptoLib.DigestSize(_HashAlg))
                 {
                     Globs.Throw("TpmHash.HashData: Inconsistent data length");
                 }

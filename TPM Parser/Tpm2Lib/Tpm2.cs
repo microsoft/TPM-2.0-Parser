@@ -973,7 +973,7 @@ namespace Tpm2Lib
             return m.GetBytes();
         }
 
-        public static string ParseCommand(byte[] buf)
+        public static string ParseCommand(byte[] buf, out TpmCc CommandCode)
         {
             CommandHeader commandHeader;
             TpmHandle[] inHandles;
@@ -986,10 +986,11 @@ namespace Tpm2Lib
             {
                 response = "The TPM command is not properly formatted.  Doing the best I can...\n";
             }
-            CommandInfo command = Tpm2.CommandInfoFromCommandCode(commandHeader.CommandCode);
+            CommandCode = commandHeader.CommandCode;
+            CommandInfo command = Tpm2.CommandInfoFromCommandCode(CommandCode);
             if (command == null)
             {
-                response += String.Format("The command-code {0} is not defined.  Aborting\n", commandHeader.CommandCode);
+                response += String.Format("The command-code {0} is not defined.  Aborting\n", CommandCode);
                 return response;
             }
             response += "Header:\n";
@@ -1197,13 +1198,8 @@ namespace Tpm2Lib
                 if (indices.Count != remainingHexCharacters.Count)
                     haveIndices = false;
             }
-            if (haveIndices)
-            {
-                // if only one line, stop checking
-                if (indices.Count < 2)
-                    haveIndices = false;
-            }
-            if (haveIndices)
+            if (haveIndices &&
+                indices.Count > 1)
             {
                 // check if indices are equally spaced
                 uint step = indices[1] - indices[0];
@@ -1287,11 +1283,11 @@ namespace Tpm2Lib
         /// Interpret a HEX command string into a parsed command.  
         /// </summary>
         /// <param name="s"></param>
-        public static string ParseCommand(string s)
+        public static string ParseCommand(string s, out TpmCc CommandCode)
         {
             s = CleanHex(s);
             byte[] commandBytes = Globs.ByteArrayFromHex(s);
-            return ParseCommand(commandBytes);
+            return ParseCommand(commandBytes, out CommandCode);
         }
 
         /// <summary>

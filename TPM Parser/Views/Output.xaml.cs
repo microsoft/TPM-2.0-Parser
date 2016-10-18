@@ -3,6 +3,7 @@ using Windows.UI.Xaml.Controls;
 using Tpm2Lib;
 using System.Collections;
 using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Navigation;
 
 namespace TPM_Parser.Views
 {
@@ -11,6 +12,11 @@ namespace TPM_Parser.Views
     /// </summary>
     public sealed partial class Output : Page
     {
+        private readonly NavigationHelper m_NavigationHelper;
+        private const string m_SettingOutputCommandCode = "commandCode";
+        private const string m_SettingOutputResponseStream = "responseStream";
+        private const string m_SettingOutputDecodedResponse = "decodedResponse";
+
         public Output()
         {
             this.InitializeComponent();
@@ -29,6 +35,10 @@ namespace TPM_Parser.Views
             {
                 TpmCommands.Items.Add(command);
             }
+
+            this.m_NavigationHelper = new NavigationHelper(this);
+            this.m_NavigationHelper.LoadState += LoadState;
+            this.m_NavigationHelper.SaveState += SaveState;
 
             // testing only
             //ResponseStream.Text = "80010000016300000000010000000600" +
@@ -117,5 +127,88 @@ namespace TPM_Parser.Views
                     break;
             }
         }
+
+        #region Save and Restore state
+
+        /// <summary>
+        /// Populates the page with content passed during navigation. Any saved state is also
+        /// provided when recreating a page from a prior session.
+        /// </summary>
+        /// <param name="sender">
+        /// The source of the event; typically <see cref="NavigationHelper"/>.
+        /// </param>
+        /// <param name="e">Event data that provides both the navigation parameter passed to
+        /// <see cref="Frame.Navigate(Type, Object)"/> when this page was initially requested and
+        /// a dictionary of state preserved by this page during an earlier
+        /// session. The state will be null the first time a page is visited.</param>
+        private void LoadState(object sender, LoadStateEventArgs e)
+        {
+            if (SuspensionManager.SessionState.ContainsKey(m_SettingOutputCommandCode))
+            {
+                int index;
+                if (Int32.TryParse((string)SuspensionManager.SessionState[m_SettingOutputCommandCode], out index))
+                {
+                    if (index >= 0 && index < TpmCommands.Items.Count)
+                    {
+                        TpmCommands.SelectedIndex = index;
+                    }
+                }
+            }
+
+            if (SuspensionManager.SessionState.ContainsKey(m_SettingOutputResponseStream))
+            {
+                ResponseStream.Text = (string)SuspensionManager.SessionState[m_SettingOutputResponseStream];
+            }
+
+            if (SuspensionManager.SessionState.ContainsKey(m_SettingOutputDecodedResponse))
+            {
+                DecodedResponse.Text = (string)SuspensionManager.SessionState[m_SettingOutputDecodedResponse];
+            }
+        }
+
+        /// <summary>
+        /// Preserves state associated with this page in case the application is suspended or the
+        /// page is discarded from the navigation cache. Values must conform to the serialization
+        /// requirements of <see cref="SuspensionManager.SessionState"/>.
+        /// </summary>
+        /// <param name="sender">The source of the event; typically <see cref="NavigationHelper"/>.</param>
+        /// <param name="e">Event data that provides an empty dictionary to be populated with
+        /// serializable state.</param>
+        private void SaveState(object sender, SaveStateEventArgs e)
+        {
+            SuspensionManager.SessionState[m_SettingOutputCommandCode] = TpmCommands.SelectedIndex.ToString();
+            SuspensionManager.SessionState[m_SettingOutputResponseStream] = ResponseStream.Text;
+            SuspensionManager.SessionState[m_SettingOutputDecodedResponse] = DecodedResponse.Text;
+        }
+
+        #endregion
+
+        #region NavigationHelper registration
+
+        /// <summary>
+        /// The methods provided in this section are simply used to allow
+        /// NavigationHelper to respond to the page's navigation methods.
+        /// <para>
+        /// Page specific logic should be placed in event handlers for the  
+        /// <see cref="NavigationHelper.LoadState"/>
+        /// and <see cref="NavigationHelper.SaveState"/>.
+        /// The navigation parameter is available in the LoadState method 
+        /// in addition to page state preserved during an earlier session.
+        /// </para>
+        /// </summary>
+        /// <param name="e">Provides data for navigation methods and event
+        /// handlers that cannot cancel the navigation request.</param>
+        /// 
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            this.m_NavigationHelper.OnNavigatedTo(e);
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            this.m_NavigationHelper.OnNavigatedFrom(e);
+        }
+
+        #endregion
     }
 }
