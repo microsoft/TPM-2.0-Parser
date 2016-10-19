@@ -55,7 +55,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBox Grid.Row="0" x:Name="CommandStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM command stream here" />
+                    <TextBox Grid.Row="0" x:Name="CommandStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM command stream here" FontFamily="Consolas" />
                     <Button Grid.Row="1" x:Name="Decode" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" Content="Decode" Click="Decode_Click"/>
                     <TextBox Grid.Row="2" x:Name="Output" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" IsReadOnly="True" PlaceholderText="decoded TPM command" FontFamily="Consolas" />
                 </Grid>

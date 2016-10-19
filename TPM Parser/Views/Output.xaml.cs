@@ -4,6 +4,7 @@ using Tpm2Lib;
 using System.Collections;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
+using System.Collections.Generic;
 
 namespace TPM_Parser.Views
 {
@@ -17,24 +18,26 @@ namespace TPM_Parser.Views
         private const string m_SettingOutputResponseStream = "responseStream";
         private const string m_SettingOutputDecodedResponse = "decodedResponse";
 
+        public class CommandInfoComparer : IComparer<CommandInfo>
+        {
+            public int Compare(CommandInfo left, CommandInfo right)
+            {
+                return left.CommandCode.ToString().CompareTo(right.CommandCode.ToString());
+            }
+        }
+
         public Output()
         {
             this.InitializeComponent();
 
-            string[] commandNames = new string[CommandInformation.Info.Length];
-            int i = 0;
-            foreach (CommandInfo command in CommandInformation.Info)
-            {
-                commandNames[i++] = command.CommandCode.ToString();
-            }
-
-            Array.Sort(commandNames, new CaseInsensitiveComparer());
+            Array.Sort(CommandInformation.Info, new CommandInfoComparer());
 
             TpmCommands.Items.Clear();
-            foreach (string command in commandNames)
+            foreach (CommandInfo command in CommandInformation.Info)
             {
-                TpmCommands.Items.Add(command);
+                TpmCommands.Items.Add(command.CommandCode.ToString());
             }
+            TpmCommands.SelectedIndex = 0;
 
             this.m_NavigationHelper = new NavigationHelper(this);
             this.m_NavigationHelper.LoadState += LoadState;
