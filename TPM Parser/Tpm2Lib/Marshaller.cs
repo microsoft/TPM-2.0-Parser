@@ -114,14 +114,9 @@ namespace Tpm2Lib
             return (uint)Buffer.GetGetPos();
         }
 
-        public byte[] RemoveBytesInMiddle(int pos, int len)
-        {
-            return Buffer.RemoveBytesInMiddle(pos, len);
-        }
-
         public uint GetValidLength()
         {
-            return (uint)Buffer.GetValidLength();
+            return (uint)Buffer.GetSize();
         }
 
         public void SetGetPos(uint getPos)
@@ -406,6 +401,7 @@ namespace Tpm2Lib
                     return;
             }
         }
+
         public void PopAndSetLength()
         {
             SizePlaceholder sp = SizesToFillIn.Pop();

@@ -465,22 +465,16 @@ namespace Tpm2Lib
             return retVal;
         }
 
-        public static byte[] ByteArrayFromHex(string hexString, bool removeSpaces = false)
+        public static byte[] ByteArrayFromHex(string hexString, bool prependZero = false)
         {
-            if (removeSpaces)
-            {
-                int lastLen;
-                do
-                {
-                    lastLen = hexString.Length;
-                    hexString = hexString.Replace(" ", "");
-                } while (lastLen != hexString.Length);
-            }
             var res = new byte[1 + (hexString.Length - 1) / 2];
             string temp = hexString;
             if ((temp.Length / 2) * 2 != temp.Length)
             {
-                temp = "0" + temp;
+                if (prependZero)
+                    temp = "0" + temp;
+                else
+                    temp = temp + "0";
             }
 
             int pos = 0;

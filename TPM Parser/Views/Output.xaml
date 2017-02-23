@@ -58,7 +58,7 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Margin="20,10" Text="Select the command for which this response has been generated." />
-                    <ComboBox Grid.Row="1" x:Name="TpmCommands" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="1" x:Name="TpmCommands" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" SelectionChanged="TpmCommands_SelectionChanged"/>
                     <TextBox Grid.Row="2" x:Name="ResponseStream" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap" Text="" VerticalAlignment="Stretch" PlaceholderText="place TPM response stream here" FontFamily="Consolas" />
                     <Button Grid.Row="3" x:Name="Decode" Margin="20,10" HorizontalAlignment="Stretch" VerticalAlignment="Center" Content="Decode" Click="Decode_Click" />
                     <TextBox Grid.Row="4" x:Name="DecodedResponse" HorizontalAlignment="Stretch" Margin="20,10" TextWrapping="Wrap"  Text="" VerticalAlignment="Stretch" PlaceholderText="decoded response" IsReadOnly="True" FontFamily="Consolas" />

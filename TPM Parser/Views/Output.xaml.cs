@@ -131,6 +131,12 @@ namespace TPM_Parser.Views
             }
         }
 
+        private void TpmCommands_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ResponseStream.Text = "";
+            DecodedResponse.Text = "";
+        }
+
         #region Save and Restore state
 
         /// <summary>

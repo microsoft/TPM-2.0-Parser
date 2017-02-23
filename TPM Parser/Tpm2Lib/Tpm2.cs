@@ -153,6 +153,30 @@ namespace Tpm2Lib
         // If an ErrorHandler is registered then it is called instead 
         public delegate void ErrorHandler(TpmRc returnCode, TpmRc[] expectedResponses);
 
+        /// <summary>
+        /// DispatchMethod is called by auto-generated command action code. It assembles a byte[] containing
+        /// the formatted TPM command based on the params passed in explicitly, and the sessions currently attached
+        /// to the TPM object.  It processes the TPM response and converts it into an instantiation of the 
+        /// requested object.
+        /// </summary>
+        /// <param name="ordinal"></param>
+        /// <param name="inParms"></param>
+        /// <param name="expectedResponseType"></param>
+        /// <param name="outParms"></param>
+        /// <param name="numInHandlesNotUsed"></param>
+        /// <param name="numOutHandlesNotUsed"></param>
+        /// <returns></returns>
+        internal void DispatchMethod(
+            TpmCc ordinal,
+            TpmStructureBase inParms,
+            Type expectedResponseType,
+            out TpmStructureBase outParms,
+            int numInHandlesNotUsed,
+            int numOutHandlesNotUsed)
+        {
+            outParms = null;
+        }
+
         public static string GetErrorString(Type inParmsType, uint resultCode, out TpmRc theMaskedError)
         {
             // There are two encoding for errors - format 0 and format 1.  Decode the error type
@@ -688,16 +712,16 @@ namespace Tpm2Lib
             Array.Copy(b, (int)numHandles * 4, parms, 0, b.Length - (int)numHandles * 4);
         }
 
-        public static CrackedCommand CrackCommand(byte[] command)
+        /// <summary>
+        /// Retrieve just the command header from the command stream.
+        /// </summary>
+        /// <param name="command">the byte array containing the command stream</param>
+        /// <returns>the retrieved command header</returns>
+        public static CommandHeader CrackHeader(
+            byte[] command)
         {
-
-            var c = new CrackedCommand();
-            bool success = CrackCommand(command, out c.Header, out c.Handles, out c.Sessions, out c.CommandParms);
-            if (!success)
-            {
-                return null;
-            }
-            return c;
+            var m = new Marshaller(command);
+            return m.Get<CommandHeader>();
         }
 
         /// <summary>
@@ -785,15 +809,15 @@ namespace Tpm2Lib
                         nonceSize = (ushort)sessionLength;
                     }
                     // marshal nonceSize
-                    sessionArray[4] = (byte)nonceSize;
-                    sessionArray[5] = (byte)(nonceSize >> 8);
+                    sessionArray[4] = (byte)(nonceSize >> 8);
+                    sessionArray[5] = (byte)nonceSize;
                     // marshall session
                     int sessionOffset = sizeof(uint) + sizeof(ushort) + nonceSize;
                     sessionArray[sessionOffset] = 0;
                     // marshall authSize
                     ushort authSize = (ushort)(sessionLength - nonceSize);
-                    sessionArray[sessionOffset + 1] = (byte)authSize;
-                    sessionArray[sessionOffset + 2] = (byte)(authSize >> 8);
+                    sessionArray[sessionOffset + 1] = (byte)(authSize >> 8);
+                    sessionArray[sessionOffset + 2] = (byte)authSize;
 
                     m.SetBytes(sessionArray, sessionStart);
                 }
@@ -981,17 +1005,26 @@ namespace Tpm2Lib
             byte[] commandParmsNoHandles;
             string response = "";
 
-            bool ok = CrackCommand(buf, out commandHeader, out inHandles, out inSessions, out commandParmsNoHandles);
-            if (!ok)
-            {
-                response = "The TPM command is not properly formatted.  Doing the best I can...\n";
-            }
+            commandHeader = CrackHeader(buf);
             CommandCode = commandHeader.CommandCode;
             CommandInfo command = Tpm2.CommandInfoFromCommandCode(CommandCode);
             if (command == null)
             {
                 response += String.Format("The command-code {0} is not defined.  Aborting\n", CommandCode);
                 return response;
+            }
+            // do a sanity size check
+            if (buf.Length != commandHeader.CommandSize)
+            {
+                byte[] tmp = new byte[commandHeader.CommandSize];
+                Array.Copy(buf, tmp, (int)Math.Min(tmp.Length, commandHeader.CommandSize));
+                buf = tmp;
+            }
+
+            bool ok = CrackCommand(buf, out commandHeader, out inHandles, out inSessions, out commandParmsNoHandles);
+            if (!ok)
+            {
+                response = "The TPM command is not properly formatted.  Doing the best I can...\n";
             }
             response += "Header:\n";
             response += commandHeader + "\n";
@@ -1129,7 +1162,7 @@ namespace Tpm2Lib
             foreach (string line in lines)
             {
                 // if line ended with "\r\n", empty line is created, eliminate those
-                if (string.IsNullOrEmpty(line))
+                if (string.IsNullOrEmpty(line.Trim()))
                     continue;
 
                 // replace each character that cannot be interpreted as hexadecimal

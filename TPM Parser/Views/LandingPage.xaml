@@ -49,12 +49,22 @@
             <StackPanel x:Name="ContentContainer" Margin="12,0,24,0">
                 <TextBlock Style="{StaticResource SubtitleTextBlockStyle}">TPM 2.0 Command Decoder</TextBlock>
                 <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">This tool allows to decode of TPM 2.0 commands. This comes in handy if
-                a logged stream of TPM 2.0 commands needs to be decocded.</TextBlock>
+                a logged stream of TPM 2.0 commands needs to be decocded.
+                </TextBlock>
 
                 <TextBlock Style="{StaticResource SubtitleTextBlockStyle}">TPM 2.0 Response Decoder</TextBlock>
                 <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">This tool allows to decode the response for a TPM 2.0 command. Given the
                 command that was used to generate the response and the byte stream of the response, this tool decodes the byte stream into a more readable 
                 format.</TextBlock>
+
+                <TextBlock Style="{StaticResource SubtitleTextBlockStyle}">Valid inputs</TextBlock>
+                <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">
+                Acceptable input is any bytestream that contains a valid command or response. The bytestream may contain other characters than characters that make up
+                a hexadecimal number - these characters will be filtered out. Each line of input may also start with an index that defines the offset of the
+                line in the bytestream.<LineBreak/>Examples:<LineBreak/>8001000000160000017A00000001800000000000000A<LineBreak/>Or:<LineBreak/>
+                0000  80010000 00130000 00000000 00000100  ................
+                0010  000000                               ...
+                </TextBlock>
 
                 <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,4">TPM 2.0 Overview</TextBlock>
                 <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,4">

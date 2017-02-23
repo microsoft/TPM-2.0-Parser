@@ -1,1 +1,1 @@
-C:\Users\raigner\Source\Repos\TPM-2.0-Parser\TPM Parser\AppPackages\TPM Parser_1.2.4.0\TPM Parser_1.2.4.0_x86_x64_arm.appxbundle
+C:\Users\raigner\Source\Repos\TPM-2.0-Parser\TPM Parser\AppPackages\TPM Parser_1.4.1.0\TPM Parser_1.4.1.0_x86_x64_arm.appxbundle

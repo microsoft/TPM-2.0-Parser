@@ -81,31 +81,6 @@ namespace Tpm2Lib
             Array.Copy(bytesToSet, 0, Buf, pos, bytesToSet.Length);
         }
 
-        public byte[] GetBytesInMiddle(int startPos, int length)
-        {
-            var temp = new byte[length];
-            Array.Copy(Buf, startPos, temp, 0, length);
-            return temp;
-        }
-
-        public byte[] RemoveBytesInMiddle(int startPos, int length)
-        {
-            byte[] res = GetBytesInMiddle(startPos, length);
-            // Close the gap
-            for (int j = startPos; j < PutPos - length; j++)
-            {
-                Buf[j] = Buf[j + length];
-            }
-            PutPos -= length;
-            return res;
-        }
-
-        public void Reset()
-        {
-            PutPos = 0;
-            GetPos = 0;
-        }
-
         public int GetSize()
         {
             return PutPos;
@@ -125,11 +100,6 @@ namespace Tpm2Lib
                 return;
             }
             GetPos = newGetPos;
-        }
-
-        public int GetValidLength()
-        {
-            return PutPos;
         }
 
         public byte[] Extract(int num)
