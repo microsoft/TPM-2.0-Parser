@@ -1010,7 +1010,7 @@ namespace Tpm2Lib
             CommandInfo command = Tpm2.CommandInfoFromCommandCode(CommandCode);
             if (command == null)
             {
-                response += String.Format("The command-code {0} is not defined.  Aborting\n", CommandCode);
+                response += String.Format("The command-code {0} (0x{0:x}) is not defined.\n", CommandCode);
                 return response;
             }
             // do a sanity size check
@@ -1320,7 +1320,26 @@ namespace Tpm2Lib
         {
             s = CleanHex(s);
             byte[] commandBytes = Globs.ByteArrayFromHex(s);
-            return ParseCommand(commandBytes, out CommandCode);
+            string result = "Error: could not decode command.";
+            CommandCode = TpmCc.None;
+            try
+            {
+                if (commandBytes.Length < 10)
+                {
+                    result += "\nNot enough bytes for TPM command header (10 bytes).";
+                }
+                else
+                {
+                    result = ParseCommand(commandBytes, out CommandCode);
+                }
+            }
+            catch (Exception e)
+            {
+                result += "\n" + e.Message;
+                result += "\n\nHere is the filtered input:\n";
+                result += s;
+            }
+            return result;
         }
 
         /// <summary>
@@ -1332,7 +1351,23 @@ namespace Tpm2Lib
         {
             s = CleanHex(s);
             byte[] commandBytes = Globs.ByteArrayFromHex(s);
-            return ParseResponse(commandName, commandBytes);
+            string result = "Error while parsing response.";
+            try
+            {
+                if (commandBytes.Length < 10)
+                {
+                    result += "\nNot enough bytes for valid response (10 bytes).";
+                }
+                else
+                {
+                    result = ParseResponse(commandName, commandBytes);
+                }
+            }
+            catch (Exception e)
+            {
+                result += "\n" + e.Message;
+            }
+            return result;
         }
 
     }
