@@ -1208,6 +1208,9 @@ namespace Tpm2Lib
     {
         public bool Enabled = false;
         private string CurIndent = "";
+#if NETFX_CORE
+        private string Output = "";
+#endif
 
         public Dbg(bool enabled = false)
         {
@@ -1220,9 +1223,18 @@ namespace Tpm2Lib
             {
 #if !NETFX_CORE
                 Console.WriteLine(CurIndent + format, args);
+#else
+                Output += string.Format(CurIndent + format, args);
 #endif
             }
         }
+
+#if NETFX_CORE
+        public string GetOutput()
+        {
+            return Output;
+        }
+#endif
 
         public void Indent ()
         {
